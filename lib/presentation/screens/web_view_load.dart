@@ -39,12 +39,7 @@ class _WebViewLoadState extends State<WebViewLoad> {
               },
             ),
           )
-          ..loadRequest(
-            Uri.parse(
-              'https://sigparent.orison.school/ParentPortal/dashboardmobile?AccountId=95793&Key=SIG-ORSN-458',
-            ),
-          );
-    // ..loadRequest(Uri.parse('https://flutter.dev'));
+          ..loadRequest(Uri.parse('https://flutter.dev'));
   }
 
   @override
