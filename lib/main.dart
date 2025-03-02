@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:hive_flutter/hive_flutter.dart';
@@ -35,7 +36,9 @@ void main() async {
 
   // Initialize HydratedBloc storage
   HydratedBloc.storage = await HydratedStorage.build(
-    storageDirectory: await getTemporaryDirectory(),
+    storageDirectory: kIsWeb
+        ? HydratedStorageDirectory.web
+        : HydratedStorageDirectory((await getTemporaryDirectory()).path),
   );
 
   await configureDependencies();
@@ -62,7 +65,6 @@ class MyApp extends StatelessWidget {
             primary: Color(0xFF89CFF0), // Baby blue
             secondary: Color(0xFF89CFF0).withOpacity(0.7),
             surface: Colors.white,
-            background: Colors.white,
           ),
           elevatedButtonTheme: ElevatedButtonThemeData(
             style: ElevatedButton.styleFrom(

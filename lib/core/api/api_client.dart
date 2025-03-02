@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import 'package:injectable/injectable.dart';
 import 'package:flutter/material.dart';
 import 'package:task_mngmt/presentation/screens/login_screen.dart';
+import 'package:task_mngmt/core/errors/api_error.dart';
 
 @singleton
 class ApiClient {
@@ -40,17 +41,35 @@ class ApiClient {
     bool withToken = false,
     required BuildContext context,
   }) async {
-    final options = Options();
-    if (withToken) {
-      final token = _tokenBox.get('token');
-      if (token != null) {
-        options.headers = {'Authorization': 'Bearer $token'};
-      } else {
-        _navigateToLogin(context);
-        throw Exception('Token not found');
+    try {
+      final options = Options();
+      if (withToken) {
+        final token = _tokenBox.get('token');
+        if (token != null) {
+          options.headers = {'Authorization': 'Bearer $token'};
+        } else {
+          throw ApiError(
+            message: 'Authentication Required',
+            action: 'GET $path',
+            details: 'Token not found. Please login again.',
+          );
+        }
       }
+      return await _dio.get(path, queryParameters: queryParameters, options: options);
+    } on DioException catch (e) {
+      throw ApiError(
+        message: _getDioErrorMessage(e),
+        action: 'GET $path',
+        details: e.response?.data?.toString(),
+        statusCode: e.response?.statusCode,
+      );
+    } catch (e) {
+      throw ApiError(
+        message: e.toString(),
+        action: 'GET $path',
+        details: 'An unexpected error occurred',
+      );
     }
-    return _dio.get(path, queryParameters: queryParameters, options: options);
   }
 
   Future<Response> post(
@@ -60,20 +79,38 @@ class ApiClient {
     required BuildContext context,
     Map<String, String>? headers,
   }) async {
-    final options = Options(headers: headers);
-    if (withToken) {
-      final token = _tokenBox.get('token');
-      if (token != null) {
-        options.headers = {
-          ...options.headers ?? {},
-          'Authorization': 'Bearer $token'
-        };
-      } else {
-        _navigateToLogin(context);
-        throw Exception('Token not found');
+    try {
+      final options = Options(headers: headers);
+      if (withToken) {
+        final token = _tokenBox.get('token');
+        if (token != null) {
+          options.headers = {
+            ...options.headers ?? {},
+            'Authorization': 'Bearer $token'
+          };
+        } else {
+          throw ApiError(
+            message: 'Authentication Required',
+            action: 'POST $path',
+            details: 'Token not found. Please login again.',
+          );
+        }
       }
+      return await _dio.post(path, data: data, options: options);
+    } on DioException catch (e) {
+      throw ApiError(
+        message: _getDioErrorMessage(e),
+        action: 'POST $path',
+        details: e.response?.data?.toString(),
+        statusCode: e.response?.statusCode,
+      );
+    } catch (e) {
+      throw ApiError(
+        message: e.toString(),
+        action: 'POST $path',
+        details: 'An unexpected error occurred',
+      );
     }
-    return _dio.post(path, data: data, options: options);
   }
 
   Future<Response> put(
@@ -122,5 +159,39 @@ class ApiClient {
       context,
       MaterialPageRoute(builder: (context) => LoginScreen()),
     );
+  }
+
+  String _getDioErrorMessage(DioException e) {
+    switch (e.type) {
+      case DioExceptionType.connectionTimeout:
+        return 'Connection timeout. Please check your internet connection.';
+      case DioExceptionType.sendTimeout:
+        return 'Send timeout. Please try again.';
+      case DioExceptionType.receiveTimeout:
+        return 'Receive timeout. Please try again.';
+      case DioExceptionType.badResponse:
+        return _handleBadResponse(e.response);
+      case DioExceptionType.cancel:
+        return 'Request cancelled.';
+      default:
+        return 'Network error occurred. Please check your connection.';
+    }
+  }
+
+  String _handleBadResponse(Response? response) {
+    switch (response?.statusCode) {
+      case 400:
+        return 'Bad request. Please check your input.';
+      case 401:
+        return 'Unauthorized. Please login again.';
+      case 403:
+        return 'Access denied. You don\'t have permission.';
+      case 404:
+        return 'Resource not found.';
+      case 500:
+        return 'Server error. Please try again later.';
+      default:
+        return 'An error occurred. Please try again.';
+    }
   }
 }

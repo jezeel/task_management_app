@@ -4,6 +4,7 @@ import 'package:task_mngmt/domain/entities/task.dart' show Task;
 import 'package:task_mngmt/presentation/blocs/task/task_bloc.dart';
 import 'package:task_mngmt/presentation/screens/task_creation_screen.dart';
 import 'package:task_mngmt/presentation/widgets/task_item.dart';
+import 'package:task_mngmt/presentation/blocs/auth/auth_bloc.dart';
 
 class TaskListScreen extends StatefulWidget {
   const TaskListScreen({super.key});
@@ -106,8 +107,72 @@ class _TaskListScreenState extends State<TaskListScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      drawer: Drawer(
+        child: BlocBuilder<AuthBloc, AuthState>(
+          builder: (context, state) {
+            return state.maybeWhen(
+              authenticated: (user) => Column(
+                children: [
+                  UserAccountsDrawerHeader(
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    currentAccountPicture: CircleAvatar(
+                      backgroundImage: NetworkImage(user.avatar),
+                      backgroundColor: Colors.white,
+                    ),
+                    accountName: Text(
+                      '${user.firstName} ${user.lastName}',
+                      style: const TextStyle(
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    accountEmail: Text(user.email),
+                  ),
+                  const Spacer(),
+                  Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: ElevatedButton.icon(
+                      onPressed: () {
+                        context.read<AuthBloc>().add(const AuthEvent.loggedOut());
+                      },
+                      icon: const Icon(Icons.logout),
+                      label: const Text('Logout'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.red,
+                        foregroundColor: Colors.white,
+                        minimumSize: const Size(double.infinity, 50),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+                ],
+              ),
+              orElse: () => const Center(
+                child: CircularProgressIndicator(),
+              ),
+            );
+          },
+        ),
+      ),
       appBar: AppBar(
-        title: const Text('Task List'),
+        elevation: 2,
+        title: const Text(
+          'Task List',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        flexibleSpace: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [
+                Theme.of(context).colorScheme.primary,
+                Theme.of(context).colorScheme.secondary,
+              ],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+          ),
+        ),
         actions: [
           IconButton(
             icon: Icon(_isSearchVisible ? Icons.close : Icons.search),
